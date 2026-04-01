@@ -1,0 +1,57 @@
+---
+title: Bash Profiles
+subtitle: "`~/.bash_profile` or `~/.bashrc`"
+---
+
+Use a `~/.bash_profile` file (preferred) or a `~/.bashrc` file to configure the appearance and behavior of Bash shell and terminals.
+
+### Shebang
+
+Specify that the script should be run using the Bash shell found in the user's environment.
+
+```bash
+#!/usr/bin/env bash
+```
+
+### Git Branch
+
+To get the current working branch of a Git repository:
+
+```bash
+git_branch() {
+    git branch 2>/dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ (\1)/'
+}
+```
+
+### Terminal Prompt
+
+Piece together a color-coded terminal prompt
+
+
+### Python Virtual Environments
+
+It is helpful to know when a Python virtual environment is activated
+
+
+### Putting it all together
+
+```{.bash filename="~/.bash_profile"}
+#!/usr/bin/env bash
+
+# GIT FUNCTIONS
+git_branch() {
+    git branch 2>/dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ (\1)/'
+}
+
+# TERMINAL PROMPT
+PS1="\[\e[0;93m\]\u\[\e[m\]"                 # username
+PS1+=" "                                     # space for readability
+PS1+="\[\e[0;95m\]\W\[\e[m\]"                # PWD, current directory only
+PS1+="\[\e[0;92m\]\$(git_branch)\[\e[m\]"    # current branch
+PS1+=" "    # space
+PS1+=">> "    # end prompt
+export PS1;
+
+export CLICOLOR=1
+export LSCOLORS=ExFxBxDxCxegedabagacad
+```
