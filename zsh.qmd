@@ -1,0 +1,84 @@
+---
+title: Zsh Profiles
+subtitle: "Customizing Zsh terminals with `~/.zprofile` or `~/.zshrc`"
+---
+
+# `.zprofile`
+
+```{.zsh filename="~/.zprofile"}
+# PATHs
+path+=('homebrew/bin')
+
+# GIT
+setopt prompt_subst
+autoload -Uz vcs_info
+zstyle ':vcs_info:*' stagedstr 'M' 
+zstyle ':vcs_info:*' unstagedstr 'M' 
+zstyle ':vcs_info:*' check-for-changes true
+zstyle ':vcs_info:*' actionformats '%F{5}[%F{2}%b%F{3}|%F{1}%a%F{5}]%f '
+zstyle ':vcs_info:*' formats \
+  '%F{5}[%F{2}%b%F{5}] %F{2}%c%F{3}%u%f'
+zstyle ':vcs_info:git*+set-message:*' hooks git-untracked
+zstyle ':vcs_info:*' enable git 
++vi-git-untracked() {
+  if [[ $(git rev-parse --is-inside-work-tree 2> /dev/null) == 'true' ]] && \
+  [[ $(git ls-files --other --directory --exclude-standard | sed q | wc -l | tr -d ' ') == 1 ]] ; then
+  hook_com[unstaged]+='%F{1}??%f'
+fi
+}
+
+# PROMPT
+precmd () { vcs_info }
+PROMPT='%F{5}[%F{2}%n%F{5}] %F{3}%3~ ${vcs_info_msg_0_} %f%# '
+```
+
+
+# `.zshrc`
+
+```{.zsh filename="~/.zshrc"}
+# Clear any residual output on shell start
+clear
+
+# GIT
+setopt prompt_subst
+autoload -Uz vcs_info
+zstyle ':vcs_info:*' stagedstr 'M' 
+zstyle ':vcs_info:*' unstagedstr 'M' 
+zstyle ':vcs_info:*' check-for-changes true
+zstyle ':vcs_info:*' actionformats '%F{5}[%F{2}%b%F{3}|%F{1}%a%F{5}]%f '
+zstyle ':vcs_info:*' formats \
+  '%F{5}[%F{2}%b%F{5}] %F{2}%c%F{3}%u%f'
+zstyle ':vcs_info:git*+set-message:*' hooks git-untracked
+zstyle ':vcs_info:*' enable git 
++vi-git-untracked() {
+  if [[ $(git rev-parse --is-inside-work-tree 2> /dev/null) == 'true' ]] && \
+  [[ $(git ls-files --other --directory --exclude-standard | sed q | wc -l | tr -d ' ') == 1 ]] ; then
+  hook_com[unstaged]+='%F{1}??%f '
+fi
+}
+
+# PROMPT
+precmd () { vcs_info }
+#PROMPT='${vcs_info_msg_0_}%F{2}%n@%m %F{3}%1~ %f%# '
+PS1='${vcs_info_msg_0_}%F{2}%n@%m %F{3}%1~ %f%# '
+
+# ALIAS
+alias ls='ls -GFh'
+#alias pip=/usr/bin/pip3
+#alias python=/usr/bin/python3
+#alias python=/Users/matt/homebrew/bin/python3.13
+#alias python='[ -z "$VIRTUAL_ENV" ] && /Users/matt/homebrew/bin/python3.13 || python3'
+#alias pip='[ -z "$VIRTUAL_ENV" ] && /Users/matt/homebrew/bin/pip3 || pip3'
+alias ipython='python -m IPython'
+
+# PATHS
+export PATH=/Library/Python/3.9/lib/python/site-packages
+export PATH=/opt/homebrew/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/TeX/texbin:/opt/podman/bin:/Applications/quarto/bin:homebrew/bin
+export PATH="/opt/homebrew/bin:$PATH"
+export PATH=/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/TeX/texbin:/opt/podman/bin:/Applications/quarto/bin:homebrew/bin:/opt/homebrew/bin:/opt/homebrew/bin
+export PATH="/Users/matt/homebrew/bin:$PATH"
+
+# Case-insensitive auto-complete
+zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}' 'r:|=*' 'l:|=* r:|=*'
+autoload -Uz compinit && compinit
+```
