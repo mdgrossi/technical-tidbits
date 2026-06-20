@@ -1,0 +1,13 @@
+---
+title: Storing login host aliases
+---
+
+Use this to store shortcuts for connecting to remote servers or systems. In the example below, typing `ssh university` would start an ssh connection to `<server.name>` with X11 forwarding. Additional flags and settings can be included as well.
+
+```{.zsh filename="~/.ssh/config"}
+# Remote Logins
+Host university
+  HostName <server.name>
+  User <username>
+  ForwardX11 yes
+```
