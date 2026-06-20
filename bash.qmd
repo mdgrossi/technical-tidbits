@@ -1,35 +1,135 @@
 ---
 title: Bash Profiles
-subtitle: "Customizing Bash terminals with `~/.bash_profile` or `~/.bashrc`"
+subtitle: "Customizing Bash (sh) terminals: Linux and GitBash on Windows"
 ---
 
 ::: {.callout-important}
-Bash shell has been replaced with Zsh in Mac OS. The information on this page will no longer modify the Mac Terminal window. See [Zsh](zsh.qmd) for customizing Mac Terminal behavior.
+Bash shell has been replaced with Z shell in Mac OS. The information on this page will no longer modify the Mac Terminal window. See [Zsh Profiles](zsh.qmd) for customizing Mac terminals.
 :::
 
-Use a `~/.bash_profile` file (preferred) or a `~/.bashrc` file to configure the appearance and behavior of Bash shell and terminals. More information can be found [here](https://wiki.archlinux.org/title/Bash/Prompt_customization).
+The appearance and behavior of Bash shell terminal windows can be configured using a series of hidden files. It is best practice to take a module approach using several separate files, all of which must be located in the user home directory (`~/`), and each of which has a unique purpose:
 
-### Shebang
+1. `~/.bash_profile`: Read by the Linux and Windows upon login  
+2. `~/.bashrc`: Read every time a "non-login" terminal session is started. On Linux platforms, this means opening a new tab, while on Windows, it means opening a new Git Bash window. If present, this file should be read first.  
+3. `~/.bash_prompt`: An optional file to configure terminal prompts (*i.e.*, the text that precedes user commands)
+4. `~/.aliases`: An optional file to hold user shortcut aliases.  
 
-Specify that the script should be run using the Bash shell found in the user's environment.
+These files are linked together using the `source` command. More information can be found [here](https://wiki.archlinux.org/title/Bash/Prompt_customization).
 
-```bash
-#!/usr/bin/env bash
+## My configurations
+
+```{.bash filename=".bash_profile"}
+# Load bashrc if it exists
+if [ -f ~/.bashrc ]; then
+    source ~/.bashrc
+fi
+
 ```
 
-### Git Branch
+<br>
 
-To get the current working branch of a Git repository:
+```{.bash filename=".bashrc"}
+# Prevent Python prompt hijacking
+export VIRTUAL_ENV_DISABLE_PROMPT=1
 
-```bash
-git_branch() {
-    git branch 2>/dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ (\1)/'
+# Load custom prompt if it exists
+if [ -f ~/.bash_prompt ]; then
+    source ~/.bash_prompt
+fi
+
+# Load shortcuts/aliases if they exist
+if [ -f ~/.aliases ]; then
+    source ~/.aliases
+fi
+
+```
+
+<br>
+
+```{.bash filename=".bash_prompt"}
+generate_prompt() {
+    local RS='\[\033[0m\]'             
+    local TEXT='\[\033[38;5;250m\]'    
+    local GREEN='\[\033[38;5;108m\]'   
+    local YELLOW='\[\033[38;5;180m\]'  
+    local BLUE='\[\033[38;5;110m\]'    
+
+    local VENV=""
+    if [[ -n "$VIRTUAL_ENV" ]]; then
+        VENV="${TEXT}(${GREEN}$(basename "$VIRTUAL_ENV")${TEXT}) "
+    fi
+
+    local GIT=""
+    local BRANCH=$(git branch --show-current 2>/dev/null)
+    if [[ -n "$BRANCH" ]]; then
+        GIT=" ${TEXT}[${BLUE}${BRANCH}${TEXT}]"
+    fi
+
+    PS1="${VENV}${YELLOW}\W${GIT}${TEXT} \$ ${RS}"
 }
+
+PROMPT_COMMAND=generate_prompt
+
 ```
 
-### Terminal Prompt
+<br>
 
-#### `PS1` Letter codes
+```{.bash filename=".aliases"}
+# LIST BEHAVIOR
+# Cross-Platform 'ls' configuration
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS flags: -F for indicators, -G for color
+    alias ls="ls -FG"
+else
+    # Windows/Linux (GNU) flags: -F for indicators, --color=auto for color
+    alias ls="ls -F --color=auto"
+fi
+alias ll="ls -lh"
+alias la="ls -lha"
+
+# INTERACTIVE REMOVE
+alias rm="rm -i"
+alias mv="mv -i"
+
+# NAVIGATION
+alias ..="cd .."
+alias ...="cd ../.."
+alias ....="cd ../../.."
+alias .....="cd ../../../.."
+
+# COMMON DIRECTORIES
+alias dc="cd ~/Documents"
+alias dl="cd ~/Downloads"
+alias dt="cd ~/Desktop"
+alias home="cd ~"
+
+# GITHUB SHORTCUTS
+alias gs="git status"
+alias gc="git commit -m"
+```
+
+## Discussion
+
+In the setup above, `.bash_prompt` configures the terminal prompt to show `(pyvenv) user@pwd.basename [git-branch] $ `, where
+
+* `(pyvenv)` is the name of the activated Python virtual environment, if applicable (omitted if not)
+* `user@pwd.basename` is the username and the current directory of the present working directory (pwd)
+* `[git-branch]` is the checked out Github branch if the present working directory is a Github repository (omitted otherwise)
+* ` $ ` is the final character, followed by a space, preceding user prompts.  
+
+For aesthetical convenience, these components are colored green, yellow, blue, and light grey, respectively. User prompts are white font.
+
+The `.aliases` controls, among other things, how files and directories are listed in the terminal:
+
+1. **List behavior:** Shortcuts for detailed lists (`-l`) with human-readable file sizes (`-h) and including hidden files (`-a`). Items are color-coded and marked depending on type (*e.g.*,directory, file, executable file) for clarity. Some differences exist between platforms, so an operating system (OS) check is used to make the file itself OS-agnostic.
+2. **Interactive remove:** Always ask before deleting (`rm`) or overwriting (`mv`, if the file already exists), a safeguard against accidentally removing files
+3. **Navigation:** Shortcuts for moving up the directory chain
+4. **Common directories:** Shortcuts for moving to commonly-used directories
+5. **GitHub Shortcuts:** Shortcuts for commonly-used Git commands
+
+## Understanding the Terminal Prompt
+
+### `PS1` Letter codes
 
 | Code | Description                                                          |
 |:----:|:---------------------------------------------------------------------|
@@ -62,7 +162,7 @@ git_branch() {
 | \\\] | end a sequence of non-printing characters |
 : Letter codes for `PS1` bash prompts
 
-#### Colors
+### Colors
 
 Colors and text formatting syntax can be found [here](https://misc.flogisoft.com/bash/tip_colors_and_formatting). To see samples and codes of the supported colors:
 
@@ -73,85 +173,6 @@ for C in {0..255}; do
 done
 tput sgr0
 echo
-```
-
-### Putting it all together
-
-```{.bash filename="~/.bash_profile"}
-#!/usr/bin/env bash
-
-# GIT FUNCTIONS
-git_branch() {
-    git branch 2>/dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ (\1)/'
-}
-
-# TERMINAL PROMPT
-PS1="\[\e[0;93m\]\u\[\e[m\]"                 # username
-PS1+=" "                                     # space for readability
-PS1+="\[\e[0;95m\]\W\[\e[m\]"                # PWD, current directory only
-PS1+="\[\e[0;92m\]\$(git_branch)\[\e[m\]"    # current branch
-PS1+=" "    # space
-PS1+=">> "    # end prompt
-export PS1;
-
-export CLICOLOR=1
-export LSCOLORS=ExFxBxDxCxegedabagacad
-```
-
-## Command Aliases
-
-Shortcuts and abbreviated commands to accelerate prompting. These could optionally be included in their own `~/.aliases` file.
-
-### Moving up directory chain
-
-```{.bash filename="~/.aliases"}
-alias ..="cd .."
-alias ...="cd ../.."
-alias ....="cd ../../.."
-alias .....="cd ../../../.."
-```
-
-### Navigate to common directories
-
-```bash
-alias dl="cd ~/Downloads"
-alias dt="cd ~/Desktop"
-alias dc="cd ~/Documents"
-alias home="cd ~"
-```
-
-### Minimize accidental deletion
-
-Force a confirmation prompt before removing (`rm`) or overwriting (`mv`) a file. Without these aliases, both commands just happen.
-
-```bash
-alias rm="rm -i"
-alias mv="mv -i"
-```
-
-### Color coded `ls` with slash
-
-This modifies the printout from `ls` to color-code files and directories and to include a leading forward-slash on directories for clarity.
-
-```bash
-alias ls="ls -FG"
-```
-
-### Login shortcuts
-
-```bash
-alias ud="ssh -X grossi@biohen.dbi.udel.edu"
-```
-
-## Using multiple files
-
-Assume prompt settings are in `~/.bash-prompt` and aliases are in `~/.aliases`, use a separate `~/.bash_profile` to point to these files:
-
-```{.bash filename="~/.bash_profile"}
-source ~/.bash_prompt
-source ~/.aliases
-
-echo PATH=$PATH:~/homebrew/bin
 ```
 
 ## After updating any of these files
