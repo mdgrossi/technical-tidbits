@@ -137,8 +137,25 @@ After updating any these files, either restart the terminal or use `source <file
 
 ## Understanding the Terminal Prompt
 
+### `PROMPT` components
+
 | Code | Description                                                          |
 |:----:|:---------------------------------------------------------------------|
-
-
+`%(?,,%F{red}✗ %f)` | `%(x,true-text,false-text)` is zsh's ternary prompt syntax. `?` is the test condition shorthand for "did the last command exit with status 0 (success)?" The true branch (success) is empty — nothing between the first two commas. The false branch (failure) is `%F{red}✗ %f` — a red `✗` followed by a space, then `%f` resets color. Net effect: shows a red `✗` only after a failing command; invisible otherwise.
+`$(ssh_prompt_info)` | Runs the `ssh_prompt_info` function, which returns `username@hostname` (magenta) only if `$SSH_CONNECTION` is set, otherwise prints nothing.
+`$(venv_prompt_info)` | Runs the function `venv_prompt_info`, inserts `(envname)` in white parens/cyan name if a virtual environment or non-base Conda environment is active; nothing otherwise.
+`%F{yellow}%1~/%f` | Displays the current directory. `%F{yellow}` starts yellow text; `%f` (lowercase) resets to default color afterward. `%1~` is zsh's "show the last 1 path component, using `~` shorthand for home" — *e.g.*, `/Users/username/Documents/project` shows as just `project/`, and the home directory itself shows as `~/`. (The number controls how many trailing path segments to show — `%2~/` would show `Documents/project/`, *etc.*)
+`$(git_prompt_info)` | Runs the function `git_prompt_info`, inserts`[branch]` (white brackets, green branch, red `*` if dirty) plus a trailing space, or nothing if not in a repo.
+`%F{white}$ %f` | Sets the prompt character: white `$` followed by a space, then reset.
 : Breakdown of the zsh prompt
+
+### Colors and variables
+
+* `%F{colorname}` / `%f` — start/stop foreground color (there's also `%K{}`/`%k` for background color, unused here).
+* `%~`, `%1~`, `%2~`, *etc.* — directory display with varying numbers of trailing segments shown.
+* `%n` / `%m` — username / hostname (used inside `ssh_prompt_info`, not directly in the main `PROMPT` line).
+* `$(...)` versus backticks — command substitution; either works in zsh, `$(...)` is just the modern/preferred form and nests more cleanly.
+
+## After updating any of these files
+
+After updating any these files, either restart the terminal or use `source <filename>` to load the new settings.
