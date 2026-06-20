@@ -1,84 +1,144 @@
 ---
 title: Zsh Profiles
-subtitle: "Customizing Zsh terminals with `~/.zprofile` or `~/.zshrc`"
+subtitle: "Customizing Z Shell (zsh) terminals: Mac OS Catalina and later (>10.15)"
 ---
 
-# `.zprofile`
+::: {.callout-important}
+Z shell is currently only used in Mac OS. The information on this page is not applicable to Linux or Windows. See [Bash Profiles](bash.qmd) for customizing Linux and GitBash (Windows) terminals.
+:::
+
+The appearance and behavior of Z shell terminal windows can be configured using a series of hidden files. It is best practice to take a module approach using several separate files, all of which must be located in the user home directory (`~/`), and each of which has a unique purpose:
+
+1. `~/.zprofile`: Loaded only at login. Used for things that should only run once per login session — environment variables, PATH setup that doesn't need to run in every subshell, *etc.*
+2. `~/.zshrc`: Loaded for every interactive shell on Mac OS. Used for PATH setup, prompt configuration, *etc.*
+3. `~/.aliases`: An optional file to hold user shortcut aliases.  
+
+## My configurations
 
 ```{.zsh filename="~/.zprofile"}
 # PATHs
-path+=('homebrew/bin')
-
-# GIT
-setopt prompt_subst
-autoload -Uz vcs_info
-zstyle ':vcs_info:*' stagedstr 'M' 
-zstyle ':vcs_info:*' unstagedstr 'M' 
-zstyle ':vcs_info:*' check-for-changes true
-zstyle ':vcs_info:*' actionformats '%F{5}[%F{2}%b%F{3}|%F{1}%a%F{5}]%f '
-zstyle ':vcs_info:*' formats \
-  '%F{5}[%F{2}%b%F{5}] %F{2}%c%F{3}%u%f'
-zstyle ':vcs_info:git*+set-message:*' hooks git-untracked
-zstyle ':vcs_info:*' enable git 
-+vi-git-untracked() {
-  if [[ $(git rev-parse --is-inside-work-tree 2> /dev/null) == 'true' ]] && \
-  [[ $(git ls-files --other --directory --exclude-standard | sed q | wc -l | tr -d ' ') == 1 ]] ; then
-  hook_com[unstaged]+='%F{1}??%f'
-fi
-}
-
-# PROMPT
-precmd () { vcs_info }
-PROMPT='%F{5}[%F{2}%n%F{5}] %F{3}%3~ ${vcs_info_msg_0_} %f%# '
+path+=("$HOME/homebrew/bin")
 ```
 
-
-# `.zshrc`
+<br>
 
 ```{.zsh filename="~/.zshrc"}
-# Clear any residual output on shell start
-clear
-
-# GIT
-setopt prompt_subst
-autoload -Uz vcs_info
-zstyle ':vcs_info:*' stagedstr 'M' 
-zstyle ':vcs_info:*' unstagedstr 'M' 
-zstyle ':vcs_info:*' check-for-changes true
-zstyle ':vcs_info:*' actionformats '%F{5}[%F{2}%b%F{3}|%F{1}%a%F{5}]%f '
-zstyle ':vcs_info:*' formats \
-  '%F{5}[%F{2}%b%F{5}] %F{2}%c%F{3}%u%f'
-zstyle ':vcs_info:git*+set-message:*' hooks git-untracked
-zstyle ':vcs_info:*' enable git 
-+vi-git-untracked() {
-  if [[ $(git rev-parse --is-inside-work-tree 2> /dev/null) == 'true' ]] && \
-  [[ $(git ls-files --other --directory --exclude-standard | sed q | wc -l | tr -d ' ') == 1 ]] ; then
-  hook_com[unstaged]+='%F{1}??%f '
-fi
-}
-
-# PROMPT
-precmd () { vcs_info }
-#PROMPT='${vcs_info_msg_0_}%F{2}%n@%m %F{3}%1~ %f%# '
-PS1='${vcs_info_msg_0_}%F{2}%n@%m %F{3}%1~ %f%# '
-
-# ALIAS
-alias ls='ls -GFh'
-#alias pip=/usr/bin/pip3
-#alias python=/usr/bin/python3
-#alias python=/Users/matt/homebrew/bin/python3.13
-#alias python='[ -z "$VIRTUAL_ENV" ] && /Users/matt/homebrew/bin/python3.13 || python3'
-#alias pip='[ -z "$VIRTUAL_ENV" ] && /Users/matt/homebrew/bin/pip3 || pip3'
-alias ipython='python -m IPython'
-
-# PATHS
-export PATH=/Library/Python/3.9/lib/python/site-packages
-export PATH=/opt/homebrew/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/TeX/texbin:/opt/podman/bin:/Applications/quarto/bin:homebrew/bin
-export PATH="/opt/homebrew/bin:$PATH"
-export PATH=/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/TeX/texbin:/opt/podman/bin:/Applications/quarto/bin:homebrew/bin:/opt/homebrew/bin:/opt/homebrew/bin
-export PATH="/Users/matt/homebrew/bin:$PATH"
+# PATHs (additions beyond the macOS system default)
+path+=(
+  "/opt/podman/bin"
+  "/Applications/quarto/bin"
+  "/Library/TeX/texbin"
+)
 
 # Case-insensitive auto-complete
 zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}' 'r:|=*' 'l:|=* r:|=*'
 autoload -Uz compinit && compinit
+
+# GIT
+setopt prompt_subst
+
+# Show active python virtual environment, or non-base conda env; omitted otherwise
+venv_prompt_info() {
+  local env=""
+  if [[ -n $VIRTUAL_ENV ]]; then
+    env="$(basename "$VIRTUAL_ENV")"
+  elif [[ -n $CONDA_DEFAULT_ENV && $CONDA_DEFAULT_ENV != "base" ]]; then
+    env="$CONDA_DEFAULT_ENV"
+  fi
+  [[ -z $env ]] && return
+  print -n "%F{white}(%f%F{cyan}${env}%f%F{white})%f "
+}
+
+# Show branch + dirty marker; omitted if not in a repo
+git_prompt_info() {
+  local branch
+  branch="$(git symbolic-ref --short HEAD 2>/dev/null)" || branch="$(git rev-parse --short HEAD 2>/dev/null)"
+  [[ -z $branch ]] && return
+  local dirty=""
+  [[ -n $(git status --porcelain 2>/dev/null) ]] && dirty="%F{red}*%f"
+  print -n "%F{white}[%f%F{green}${branch}%f${dirty}%F{white}]%f "
+}
+
+# USER@HOST — shown only when connected via SSH
+ssh_prompt_info() {
+  [[ -n $SSH_CONNECTION ]] || return
+  print -n "%F{magenta}%n@%m%f "
+}
+
+# PROMPT
+export VIRTUAL_ENV_DISABLE_PROMPT=1
+PROMPT='%(?,,%F{red}✗ %f)$(ssh_prompt_info)$(venv_prompt_info)%F{yellow}%1~/%f $(git_prompt_info)%F{white}$ %f'
+
+# ALIASES (shared across platforms)
+[[ -f ~/.aliases ]] && source ~/.aliases
 ```
+
+<br>
+
+```{.bash filename=".aliases"}
+# LIST BEHAVIOR
+# Cross-Platform 'ls' configuration
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS flags: -F for indicators, -G for color
+    alias ls="ls -FG"
+else
+    # Windows/Linux (GNU) flags: -F for indicators, --color=auto for color
+    alias ls="ls -F --color=auto"
+fi
+alias ll="ls -lh"
+alias la="ls -lha"
+
+# INTERACTIVE REMOVE
+alias rm="rm -i"
+alias mv="mv -i"
+
+# NAVIGATION
+alias ..="cd .."
+alias ...="cd ../.."
+alias ....="cd ../../.."
+alias .....="cd ../../../.."
+
+# COMMON DIRECTORIES
+alias dc="cd ~/Documents"
+alias dl="cd ~/Downloads"
+alias dt="cd ~/Desktop"
+alias home="cd ~"
+
+# GITHUB SHORTCUTS
+alias gs="git status"
+alias gc="git commit -m"
+```
+
+## Discussion
+
+In the setup above, `.zshrc` configures the terminal prompt to show `(pyvenv) pwd.basename [git-branch] $ `, where
+
+* `(pyvenv)` is the name of the activated Python virtual environment, if applicable (omitted if not)
+* `user@pwd.basename` is the username and the current directory of the present working directory (pwd)
+* `[git-branch]` is the checked out Github branch if the present working directory is a Github repository (omitted otherwise)
+* ` $ ` is the final character, followed by a space, preceding user prompts.  
+
+If the user is connected to a remote system via SSH, the prompt will show `(pyvenv) user@hostname pwd.basename [git-branch] $ `, where
+
+* `user` is the current user name
+* `hostname` is the name of the remote system
+
+The `.aliases` controls, among other things, how files and directories are listed in the terminal:
+
+1. **List behavior:** Shortcuts for detailed lists (`-l`) with human-readable file sizes (`-h) and including hidden files (`-a`). Items are color-coded and marked depending on type (*e.g.*,directory, file, executable file) for clarity. Some differences exist between platforms, so an operating system (OS) check is used to make the file itself OS-agnostic.
+2. **Interactive remove:** Always ask before deleting (`rm`) or overwriting (`mv`, if the file already exists), a safeguard against accidentally removing files
+3. **Navigation:** Shortcuts for moving up the directory chain
+4. **Common directories:** Shortcuts for moving to commonly-used directories
+5. **GitHub Shortcuts:** Shortcuts for commonly-used Git commands
+
+## After updating any of these files
+
+After updating any these files, either restart the terminal or use `source <filename>` to load the new settings.
+
+## Understanding the Terminal Prompt
+
+| Code | Description                                                          |
+|:----:|:---------------------------------------------------------------------|
+
+
+: Breakdown of the zsh prompt
