@@ -1,0 +1,26 @@
+---
+title: "GitHub Cheat Sheet"
+subtitle: "Things I do infrequently enough to not remember how to do them, but frequently enough to need to know"
+---
+
+### Orphan branch
+
+To create an orphan (empty) branch with no commit history in an existing repository:
+
+1. Create a new branch
+
+   `{bash} git checkout --orphan newbranch`
+
+2. Delete the existing content
+
+   `{bash} git rm -rf .`
+
+3. Commit the changes
+
+   `{bash} git commit --allow-empty -m "New empty branch"`
+
+4. Push the changes, if linked to a remote repository
+
+   `{bash} git push origin newbranch`
+
+Use this when creating a dedicated `gh-pages` branch for a GitHub Pages site or a `docs` branch for documentation whose commit history is separate from the code itself.
