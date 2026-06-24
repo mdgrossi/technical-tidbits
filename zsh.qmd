@@ -17,7 +17,8 @@ The appearance and behavior of Z shell terminal windows can be configured using 
 
 ```{.zsh filename="~/.zprofile"}
 # PATHs
-path+=("$HOME/homebrew/bin")
+path=("/opt/homebrew/bin" $path)
+path+=("$HOME/bin")
 ```
 
 <br>
@@ -37,7 +38,7 @@ autoload -Uz compinit && compinit
 # GIT
 setopt prompt_subst
 
-# Show active python virtual environment, or non-base conda env; omitted otherwise
+# VENV — shows active python venv, or non-base conda env; omitted otherwise
 venv_prompt_info() {
   local env=""
   if [[ -n $VIRTUAL_ENV ]]; then
@@ -49,7 +50,7 @@ venv_prompt_info() {
   print -n "%F{white}(%f%F{cyan}${env}%f%F{white})%f "
 }
 
-# Show branch + dirty marker; omitted if not in a repo
+# GIT — shows branch + dirty marker; omitted if not in a repo
 git_prompt_info() {
   local branch
   branch="$(git symbolic-ref --short HEAD 2>/dev/null)" || branch="$(git rev-parse --short HEAD 2>/dev/null)"
