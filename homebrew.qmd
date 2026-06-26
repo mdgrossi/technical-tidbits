@@ -1,0 +1,167 @@
+---
+title: Homebrew
+subtitle: Installing Homebrew on a non-admin macOS account
+---
+
+This documents the proper way to install Homebrew for a non-admin
+account on a Mac.
+
+Homebrew expects to install at `/opt/homebrew` (Apple Silicon) or
+`/usr/local` (Intel). The parent directory `/opt` is owned by `root`
+with `755` permissions, so:
+
+- A non-admin account cannot create `/opt/homebrew` itself.
+- Homebrew's official install script also refuses to run at all for a
+  non-admin user, even though once the target directory exists and is
+  owned by you, no further admin access is actually needed.
+
+The fix is a **one-time bridge**: use the admin account to create and
+hand over an empty, correctly-owned directory, then install entirely
+as your normal user from that point on.
+
+## Steps (run from your non-admin account's terminal)
+
+**1. Confirm architecture and check `/opt` ownership**
+```zsh
+uname -m           # arm64 = Apple Silicon, x86_64 = Intel
+ls -ld /opt        # confirm it's root-owned, as expected
+```
+
+The first command will return `arm64` on an Apple Silicon machine or `x86_64` on an Intel machine. The second command will confirm that the directory `/opt` is root-owned, as expected.
+
+**2. Use the admin account to create and hand over the `/opt` directory**
+
+Replace `username` with the actual non-admin username:
+```zsh
+su admin -c "mkdir -p /opt/homebrew && chown username:staff /opt/homebrew"
+```
+
+When prompted for a password, enter the *admin account* password.
+
+**3. Verify ownership before proceeding**
+```zsh
+ls -ld /opt/homebrew
+```
+Should show your non-admin username as owner.
+
+**4a. Try the normal installer as non-admin**
+```zsh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+If `/opt/homebrew` was empty and correctly owned by you, this
+typically still requires sudo internally and may print:
+```
+Need sudo access on macOS (e.g. the user username needs to be an Administrator)!
+```
+The installer checks for admin rights unconditionally, regardless of
+whether it's actually needed for your specific case. If you hit this:
+
+**4b. Run the installer as admin instead, then transfer ownership**
+```zsh
+su admin -c '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+su admin -c "sudo chown -R username:staff /opt/homebrew"
+```
+Replace `username` with the non-admin username. When prompted for a password, enter the admin password.
+
+**5. Verify**
+```zsh
+ls -ld /opt/homebrew
+which brew
+brew --version
+```
+
+From this point forward, **no further admin involvement is needed** —
+`brew install`, `brew update`, etc. all work normally as a regular
+user, since every file under `/opt/homebrew` is now owned by that account.
+
+## PATH setup (in `.zprofile`)
+
+Homebrew needs to be added to the PATH variable in order to be used, but it needs to supersede system-provided tools of the same name (*e.g.*, `openssl`). This is accomplished by *prepending* it to the existing PATH variable rather appending. Add the following line to `.zprofile`:
+```{.zsh filename=".zprofile"}
+# Homebrew
+path=("/opt/homebrew/bin" $path)
+```
+
+Run `brew doctor` after this to confirm no path-ordering warnings.
+
+## Keg-only formulae (*e.g.*, Python)
+
+Homebrew's Python formulae are keg-only by design. Installing
+`python@3.13` does not create a plain `python`/`pip` command.
+Two bad options to avoid:
+
+- `brew link --force python@3.13`: This works, but if you ever have two 
+  Python formulae installed (e.g. `python@3.11` and `python@3.13`), whichever was force-linked most recently silently wins, and the unversioned name can flip without warning on a future `brew install`.
+- Plain aliases or shell functions for `python`/`pip`: These work for
+  running commands, but `which`/`whence python` then reports the
+  function/alias definition instead of a real file path, which breaks
+  the common habit of using `which` to verify Python environment activation.
+
+**Best option: a personal `~/bin` directory with real symlinks.**
+```zsh
+mkdir -p ~/bin
+ln -s /opt/homebrew/bin/python3.13 ~/bin/python
+ln -s /opt/homebrew/bin/pip3.13 ~/bin/pip
+```
+
+Add `~/bin` to PATH in `.zprofile`, **after** the Homebrew line (lower
+priority — it should only fill in names Homebrew doesn't already
+provide):
+```{.zsh filename=".zprofile"}
+# Homebrew
+path+=("$HOME/bin")
+path=("/opt/homebrew/bin" $path)
+```
+
+This keeps `which python` / `which pip` reporting a real file path,
+both outside and inside a virtual environment (venv). Activating a venv
+prepends `.venv/bin` ahead of everything else on PATH automatically,
+so no extra logic is needed to give virtual environments priority.
+
+## Reinstalling formulae and rebuilding venvs
+
+Once Homebrew itself is set up, install any needed:
+```zsh
+brew install <formula1> <formula2> ...
+```
+For example:
+
+- `gh`: GitHub CLI for using GitHub in terminals
+- `python@3.x`, where `x` is a specific version of Python
+
+Any existing Python virtual environments must be rebuilt from
+scratch — they cannot simply be redirected at a new Python install,
+since each venv's interpreter, paths, and shebangs are tied to the
+exact binary that created it. To find all existing virtual environments on the machine created using Homebrew:
+```zsh
+find ~ \( -path "*/node_modules" -o -path "*/Library" -o -path "*/.cache" \) -prune -o -name "pyvenv.cfg" -print 2>/dev/null
+```
+
+or:
+```zsh
+find ~ -name "pyvenv.cfg" 2>/dev/null -exec grep -l "homebrew" {} \;
+```
+
+Recreate each project virtual environment one at a time:
+
+```zsh
+cd /path/to/project        # Replace with one project directory at a time
+rm -rf .venv               # Replace with the environment name, if not .venv
+python -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+deactivate
+```
+
+## Final check
+
+Confirm everything worked:
+```zsh
+brew doctor
+```
+Should report no warnings. If it suggests adding a PATH line directly
+to `.zshrc`, ignore that specific suggestion if you're already
+managing PATH cleanly in `.zprofile` to avoid ending up with two
+competing PATH definitions.
