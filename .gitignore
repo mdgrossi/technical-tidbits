@@ -1,2 +1,5 @@
-.quarto
+# Quarto rendering artifacts
+/.quarto/
+*_files/
+/_book/
 *.html
